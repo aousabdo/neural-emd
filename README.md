@@ -6,7 +6,8 @@ iterative sifting in Empirical Mode Decomposition (EMD), written in PyTorch.
 Classical EMD splits a signal into intrinsic mode functions (IMFs) by repeated
 envelope fitting. It works without assumptions about the signal, but it is not
 differentiable, the number of IMFs is whatever the sifting produces, and it is prone
-to mode mixing. N-EMD learns the decomposition instead:
+to mode mixing. N-EMD learns the decomposition instead, so the split is differentiable
+and you choose how many components you get:
 
 1. take the signal's spectrum (rFFT),
 2. a small 1-D CNN reads magnitude and phase and predicts *K* filter responses,
@@ -71,9 +72,16 @@ EMD   mode-mixing index:    0.236  (6 IMFs)
 EMD   first 3 IMF dominant frequencies (Hz): [58.0, 42.0, 15.0]
 ```
 
-N-EMD returns exactly the three components asked for, one per tone, and reconstructs
-the signal to float precision. Classical EMD splits the same signal into six IMFs,
-including a spurious 42 Hz mode.
+What this shows is the structure N-EMD guarantees. It returns exactly the three
+components asked for, and they add back up to the signal to float precision.
+Classical EMD returns six.
+
+It does not show better separation. "Dominant frequency" is only each component's
+strongest peak. In this single-signal fit, most of the 15 Hz tone's energy lands in the
+same component as the 3 Hz tone, and the mode-mixing index is about the same as
+EMD's. How cleanly N-EMD separates components depends on the training data and the
+loss settings. Evaluating that is the subject of the paper in preparation, so test it
+on signals like yours before relying on it.
 
 ## Training on a dataset
 

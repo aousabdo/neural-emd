@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>N-EMD: Neural Empirical Mode Decomposition</title>
+<meta name="description" content="A differentiable, learned replacement for the sifting in empirical mode decomposition. Exact reconstruction by construction. PyTorch, MIT licence, pip install neural-emd.">
+<link rel="canonical" href="https://nemd.analyticadss.com/">
+<meta property="og:title" content="N-EMD: Neural Empirical Mode Decomposition">
+<meta property="og:description" content="Empirical mode decomposition, learned and differentiable. Exact reconstruction by construction. pip install neural-emd">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nemd.analyticadss.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Cpath d='M4 12c3-6 5 6 8 0s5 6 8 0 5 6 8 0M4 21c4-3 8 3 12 0s8 3 12 0' stroke='white' stroke-width='2.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f8f8f5;
+    --card: #ffffff;
+    --soft: #f1f1ec;
+    --fg: #16181d;
+    --muted: #555a64;
+    --faint: #8a8f98;
+    --line: #e2e2dc;
+    --accent: #0f766e;
+    --accent-soft: #e3f3f1;
+    --code-bg: #14161a;
+    --code-fg: #e6e6e1;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 6px 20px rgba(0,0,0,.05);
+    --radius: 12px;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101215;
+      --card: #171a1e;
+      --soft: #1c2025;
+      --fg: #e9eae6;
+      --muted: #a9adb4;
+      --faint: #767b84;
+      --line: #2a2f36;
+      --accent: #2dd4bf;
+      --accent-soft: #10302c;
+      --code-bg: #0a0b0d;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 20px; }
+  header.top { border-bottom: 1px solid var(--line); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; color: var(--fg); text-decoration: none; }
+  .brand svg { width: 26px; height: 26px; }
+  .nav { display: flex; gap: 18px; font-size: 14px; }
+  .nav a { color: var(--muted); text-decoration: none; }
+  .nav a:hover { color: var(--fg); }
+
+  .hero { padding: 64px 0 40px; }
+  .eyebrow { font: 600 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.08; letter-spacing: -.025em; margin: 16px 0 18px; font-weight: 700; }
+  h1 span { color: var(--accent); }
+  .lead { font-size: 1.12rem; color: var(--muted); max-width: 640px; margin: 0; }
+  .install {
+    margin-top: 28px; display: flex; align-items: center; gap: 10px; max-width: 100%;
+    background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 12px 12px 12px 16px;
+    font: 15px/1.4 var(--mono); width: fit-content;
+  }
+  .install code { white-space: pre; overflow-x: auto; }
+  .install .prompt { color: #6b7280; user-select: none; }
+  .copy {
+    border: 1px solid #3a3f47; background: transparent; color: #c9ccd1; border-radius: 7px;
+    font: 12px/1 inherit; padding: 6px 9px; cursor: pointer; flex-shrink: 0;
+  }
+  .copy:hover { color: #fff; border-color: #5a606a; }
+  .badges { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
+  .badges a { text-decoration: none; }
+  .badges a:hover { text-decoration: underline; }
+
+  section { padding: 36px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 1.45rem; letter-spacing: -.015em; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 22px; max-width: 680px; }
+
+  .steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; counter-reset: s; }
+  .steps li {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px;
+    box-shadow: var(--shadow); counter-increment: s; font-size: 14.5px; color: var(--muted);
+  }
+  .steps li::before { content: counter(s); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: 600 13px/1 var(--mono); margin-bottom: 10px; }
+  .steps b { color: var(--fg); display: block; margin-bottom: 2px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+  .card h3 { font-size: 1rem; margin: 0 0 6px; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--muted); }
+  .card .eq { font: 13px/1.4 var(--mono); color: var(--accent); margin-bottom: 8px; display: block; }
+
+  figure { margin: 22px 0 0; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+  figure img { display: block; width: 100%; height: auto; }
+  figcaption { color: #555a64; font-size: 13.5px; margin-top: 8px; padding: 0 4px; }
+  .note { background: var(--soft); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px 16px; font-size: 15px; color: var(--muted); margin-top: 18px; }
+  .note strong { color: var(--fg); }
+
+  pre {
+    background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 16px 18px;
+    overflow-x: auto; font: 13.5px/1.55 var(--mono); margin: 12px 0 0;
+  }
+  pre .c { color: #7d8590; }
+  code.inline { font: .92em var(--mono); background: var(--soft); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .two h3 { font-size: 1rem; margin: 6px 0 0; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--faint); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; }
+  td code { font: 13px var(--mono); }
+
+  footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--faint); font-size: 13.5px; }
+  footer .credit { color: var(--muted); }
+  footer .credit b { color: var(--fg); font-weight: 600; }
+
+  @media (max-width: 760px) {
+    .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cards, .two { grid-template-columns: minmax(0, 1fr); }
+    .nav a.opt { display: none; }
+    .hero { padding-top: 44px; }
+  }
+  @media (max-width: 420px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f766e"/><path d="M4 12c3-6 5 6 8 0s5 6 8 0 5 6 8 0M4 21c4-3 8 3 12 0s8 3 12 0" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
+      N-EMD
+    </a>
+    <nav class="nav">
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="#example">Example</a>
+      <a href="#use">Use it</a>
+      <a href="https://github.com/aousabdo/neural-emd">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero">
+    <div class="eyebrow">Neural Empirical Mode Decomposition</div>
+    <h1>Empirical mode decomposition, <span>learned and differentiable.</span></h1>
+    <p class="lead">
+      N-EMD replaces EMD's hand-tuned iterative sifting with a small neural network that
+      predicts a bank of frequency filters. The components always add back up to the signal,
+      you choose how many you get, and the whole thing trains end to end inside a larger
+      PyTorch model.
+    </p>
+    <div class="install">
+      <span class="prompt">$</span><code id="cmd">pip install neural-emd</code>
+      <button class="copy" type="button" data-copy="pip install neural-emd" aria-label="Copy install command">Copy</button>
+    </div>
+    <div class="badges">
+      <a href="https://pypi.org/project/neural-emd/">PyPI</a>
+      <a href="https://github.com/aousabdo/neural-emd">Source on GitHub</a>
+      <span style="color:var(--faint)">PyTorch · Python 3.11+ · MIT licence</span>
+    </div>
+  </div>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p class="sub">
+      Classical EMD finds intrinsic mode functions (IMFs) by repeatedly fitting envelopes to a
+      signal's peaks and troughs. It needs no assumptions, but it isn't differentiable, the
+      number of IMFs is whatever the sifting happens to produce, and it is prone to mode
+      mixing. N-EMD learns the split in the frequency domain instead, so it is
+      differentiable and you choose how many components you get.
+    </p>
+    <ol class="steps">
+      <li><b>Spectrum</b>Take the signal's FFT.</li>
+      <li><b>Analyse</b>A 1-D CNN reads magnitude and phase and predicts <i>K</i> filter responses.</li>
+      <li><b>Partition</b>A softmax across the <i>K</i> filters makes them sum to one at every frequency.</li>
+      <li><b>Invert</b>Each filter is applied to the spectrum and transformed back into one IMF.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Guaranteed by construction</h2>
+    <p class="sub">These hold for any weights, trained or not. Training only has to make the filters sharp, ordered by frequency and orthogonal.</p>
+    <div class="cards">
+      <div class="card"><span class="eq">Σ IMF<sub>k</sub> = x</span><h3>Exact reconstruction</h3><p>The filters sum to one, so the components always add back up to the input, to float precision.</p></div>
+      <div class="card"><span class="eq">0 ≤ H<sub>k</sub>(f) ≤ 1</span><h3>Band-limited components</h3><p>Every filter is non-negative, so each IMF is a bandpass of the signal, never something the signal doesn't contain.</p></div>
+      <div class="card"><span class="eq">Σ ‖IMF<sub>k</sub>‖² ≤ ‖x‖²</span><h3>No energy inflation</h3><p>Together the components can't hold more energy than the signal itself, which classical EMD doesn't guarantee.</p></div>
+    </div>
+  </section>
+
+  <section id="example">
+    <h2>Example</h2>
+    <p class="sub">
+      One noisy second of three AM-FM tones at 50, 15 and 3 Hz, decomposed by N-EMD fitted
+      to that signal alone, next to classical EMD. This is the run in
+      <a href="https://github.com/aousabdo/neural-emd/blob/main/examples/quickstart.py"><code class="inline">examples/quickstart.py</code></a>.
+    </p>
+    <figure>
+      <img src="components.svg" alt="The input signal and its first three components: on the left N-EMD's three IMFs, with dominant frequencies 58, 16 and 3 Hz; on the right classical EMD's first three of six IMFs, at 58, 42 and 15 Hz. EMD's first IMF switches on and off along the signal." width="900" height="560" loading="lazy">
+      <figcaption>Left: N-EMD's three components. Right: the first three of classical EMD's six IMFs. The labels give each component's strongest frequency.</figcaption>
+    </figure>
+<pre>N-EMD IMF dominant frequencies (Hz): [58.0, 16.0, 3.0]
+N-EMD reconstruction error: 1.96e-07
+N-EMD mode-mixing index:    0.241
+EMD   mode-mixing index:    0.236  (6 IMFs)</pre>
+    <div class="note">
+      <strong>What this does and doesn't show.</strong> N-EMD returns exactly the three
+      components asked for, and they reconstruct the signal to float precision; EMD returns
+      six. It does not show better separation: here most of the 15 Hz tone's energy shares a
+      component with the 3 Hz tone, and the mode-mixing index is about the same as EMD's.
+      How cleanly N-EMD separates components depends on its training data and loss
+      settings. That evaluation is the subject of the paper in preparation, so test it on
+      signals like yours before relying on it.
+    </div>
+  </section>
+
+  <section id="use">
+    <h2>Use it</h2>
+    <div class="two">
+      <div>
+        <h3>Install</h3>
+<pre>pip install neural-emd
+<span class="c"># with classical EMD / EEMD / VMD for comparison</span>
+pip install "neural-emd[baselines]"</pre>
+        <p class="sub" style="margin-top:12px">The import name is <code class="inline">nemd</code>.</p>
+      </div>
+      <div>
+        <h3>Decompose a batch</h3>
+<pre><span class="c"># model: a trained nemd.model.NEMD</span>
+imfs, residual, meta = model(batch)
+<span class="c"># batch (B, T) -> imfs (B, K, T)</span>
+<span class="c"># imfs.sum(1) == batch, exactly</span></pre>
+      </div>
+    </div>
+    <h3 style="font-size:1rem;margin:22px 0 0">Train on your own signals</h3>
+<pre>from nemd.train import TrainConfig, train
+
+result = train(TrainConfig(num_imfs=3, signal_length=1024, sample_rate=1000.0),
+               dataset_fn=my_signals)   <span class="c"># (n_signals, config, seed) -> tensor (n, T)</span>
+model = result["model"]</pre>
+
+    <table style="margin-top:24px">
+      <tr><th>Module</th><th>What's in it</th></tr>
+      <tr><td><code>nemd.model</code></td><td><code>NEMD</code>, the filter-bank model, and <code>NEMDSifting</code>, the earlier iterative variant kept for ablations</td></tr>
+      <tr><td><code>nemd.losses</code></td><td>Filter sharpness, frequency ordering, orthogonality and balance losses, combined in <code>NEMDLoss</code></td></tr>
+      <tr><td><code>nemd.train</code></td><td><code>TrainConfig</code>, <code>train</code>, <code>overfit_single_signal</code></td></tr>
+      <tr><td><code>nemd.utils</code></td><td>Synthetic AM-FM, chirp and nonstationary signals; reconstruction error, orthogonality, mode-mixing and IF-tracking metrics</td></tr>
+      <tr><td><code>nemd.classical</code></td><td>EMD, EEMD and VMD baselines (with the <code>[baselines]</code> extra)</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Status</h2>
+    <p class="sub">
+      Research code, alpha: the API may change before 1.0. A paper describing the method and
+      its evaluation is in preparation. Until it's out, please cite the
+      <a href="https://github.com/aousabdo/neural-emd">GitHub repository</a> if you use N-EMD.
+      Issues and pull requests are welcome.
+    </p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="credit"><b>Built by Aous Abdo · <a href="https://analyticadss.com/">Analytica Data Science Solutions</a></b></div>
+    <div class="credit">Ph.D., Astroparticle Physics · Former scientist at NASA, Los Alamos National Lab, and the U.S. Department of Defense</div>
+    <div style="margin-top:12px">MIT licence · v0.1.1 · <a href="https://github.com/aousabdo/neural-emd/issues">Report an issue</a></div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.getAttribute('data-copy');
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+        b.textContent = 'Copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500);
+      }, function () {});
+    });
+  });
+</script>
+</body>
+</html>

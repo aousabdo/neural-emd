@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "neural-emd"
-version = "0.1.0"
+version = "0.1.1"
 description = "Neural Empirical Mode Decomposition: a differentiable, learned replacement for EMD sifting, in PyTorch"
 readme = "README.md"
 license = "MIT"
@@ -35,7 +35,8 @@ baselines = ["EMD-signal>=1.5", "vmdpy>=0.2"]
 dev = ["pytest>=7.0", "EMD-signal>=1.5", "vmdpy>=0.2"]
 
 [project.urls]
-Homepage = "https://github.com/aousabdo/neural-emd"
+Homepage = "https://nemd.analyticadss.com"
+Source = "https://github.com/aousabdo/neural-emd"
 Issues = "https://github.com/aousabdo/neural-emd/issues"
 
 [tool.hatch.build.targets.wheel]
